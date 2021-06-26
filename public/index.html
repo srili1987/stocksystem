@@ -1,0 +1,198 @@
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Authorization using JSON Web Tokens</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+  <link href="/jwtaccss/public/css/bootstrap.min.css" rel="stylesheet">
+  <link href="/jwtaccss/public/css/signin.css" rel="stylesheet">
+  <style>
+  .form-signin{max-width:1000px;}
+  form,.input-group1 .searchList,.form-outline{width: 300px;
+    margin: 0 auto;}
+	.input-group1{margin:0 auto;width:100%;}
+  body{background:#ecf8e8;}
+    #searchName{ border-bottom: 1px solid #f9f9f9;
+    display: flex;
+    padding: 10px;
+    margin: 0px;}
+	#searchName:hover{background:#e0f2ff;cursor:pointer;}
+	.input-group1 .searchList{
+		display:none;
+		border: 1px solid #fff;
+		background: #fff;
+		max-height: 200px;
+		overflow-x: hidden;
+		overflow-y: scroll;
+		border-radius: 0px 0px 15px 15px;
+	}
+	.input-group1 .searchDetails{
+	display:none;
+	width: 750px;
+    margin: 0 auto;
+    display: block;
+    padding: 10px;
+    border-radius: 10px;
+    background: #fff;    font-size: 14px;}
+	table{
+	width: 100%;
+    padding: 10px;
+    background: #eeefee;}
+	tbody tr:nth-child(even){
+  background-color: #4C8BF5;
+  color: #fff;
+}	.col-md-4.market {
+    padding: 10px;
+    
+}.col-md-4.market .bg,.col-md-4.market .bg1 {
+    padding: 10px;
+    /* border-radius: 10px; */
+    text-align: left;
+    width: 58%;
+    float: left; 
+}.col-md-4.market .bg1{background: #ecf8e8;border-radius: 10px 0px 0px 10px;}
+
+.red {
+    color: red;
+    text-align: right;
+    text-align: right !important;
+    float: right !important;
+    right: 0px;
+    width: 42% !important;border-radius: 0 10px 10px 0 !important;
+	font-weight:bold;
+}
+.namelist{background: #ececec;}
+  </style>
+</head>
+
+<body class="text-center">
+  <main class="form-signin">
+    <form method="post" action="authenticate.php" id="frmLogin">
+      <h1 class="h3 mb-3 fw-normal">Login In</h1>
+
+      <label for="inputEmail" class="visually-hidden">Email address</label>
+      <input type="text" id="inputEmail" class="form-control" placeholder="Email address or username" required
+        autofocus="">
+
+      <label for="inputPassword" class="visually-hidden">Password</label>
+      <input type="password" id="inputPassword" class="form-control" placeholder="Password" required>
+
+      <div class="checkbox mb-3">
+        <label>
+          <input type="checkbox" value="remember-me"> Remember me
+        </label>
+      </div>
+      <button class="w-100 btn btn-lg btn-primary" type="submit">Sign in</button>      
+    </form>
+	<div class="input-group1" id="searchform" style="display:none;">
+		<div class="form-outline" style="position:relative;">
+		<h4>The easiest way to buy<br/>and sell stocks.</h4>
+		<p>Stock analysis and screening tool for<br/>investors in India.</p>
+		</div>
+	  <div class="form-outline" style="position:relative;">
+		<i class="fas fa-search" style="position:absolute;top:15px; left:10px;z-index:9"></i>
+		<input type="search" id="searchTitle" style="padding: 10px 10px 10px 34px;z-index:1"name="searchTitle" value="" class="form-control" />
+		<label class="form-label" for="form1" style="display:none;">Search</label>
+	  </div>
+	  <div class="searchList">
+	  </div>
+	  <div class="row searchDetails" style="display:none;">
+	  </div>	  
+	</div>    
+  </main>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+  <script>
+    const store = {};
+    const loginButton = document.querySelector('#frmLogin');
+    const btnGetResource = document.querySelector('#searchform');
+    const form = document.forms[0];
+	
+    // Inserts the jwt to the store object
+    store.setJWT = function (data) {
+      this.JWT = data;
+    };
+
+    loginButton.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const res = await fetch('/jwtaccss/public/authenticate.php', {
+        method: 'POST',
+        headers: {
+          'Content-type': 'application/x-www-form-urlencoded; charset=UTF-8'
+        },
+        body: JSON.stringify({
+          username: form.inputEmail.value,
+          password: form.inputPassword.value
+        })
+      });
+
+      if (res.status >= 200 && res.status <= 299) {
+        const jwt = await res.text();
+        store.setJWT(jwt);
+        frmLogin.style.display = 'none';
+        btnGetResource.style.display = 'block';
+      } else {
+        console.log(res.status, res.statusText);
+      }
+    });
+	jQuery(document).ready(function(){	
+		jQuery("#searchTitle").keyup(function(){
+				jQuery(".searchDetails").hide();
+				jQuery(".searchDetails").empty();
+			var searchTitle=jQuery.trim(jQuery(this).val());
+			if(searchTitle!=''){
+				jQuery.ajax({
+					url: '/jwtaccss/public/fetchNSE.php',
+					type: 'POST',
+					beforeSend: function (xhr) {
+						xhr.setRequestHeader('Authorization', `Bearer ${store.JWT}`);
+					},
+					data: {"searchTitle":searchTitle},
+					success: function (data) {
+						jQuery(".searchList").show();
+						jQuery(".searchList").empty();
+						if(data.length>0){
+						var datas = jQuery.parseJSON(data);
+						$.each(datas, function(key,value) {
+						  jQuery(".searchList").append("<span id='searchName'>"+value.name+"</span>");    //It will shows the Id values
+						}); 
+						}
+					},
+					error: function () { },
+				});
+			} else {
+			jQuery(".searchList").hide();
+			jQuery(".searchList").empty();
+			}
+		});
+		jQuery("body").on("click","#searchName",function(){
+			var searchName=jQuery.trim(jQuery(this).text());
+			if(searchName!=''){
+				jQuery(".searchList").hide();
+				jQuery(".searchList").empty();
+				jQuery("#searchTitle").val('');
+				jQuery.ajax({
+					url: '/jwtaccss/public/fetchNSE.php',
+					type: 'POST',
+					beforeSend: function (xhr) {
+						xhr.setRequestHeader('Authorization', `Bearer ${store.JWT}`);
+					},
+					data: {"searchName":searchName},
+					success: function (data) {
+					jQuery(".searchDetails").show();
+						jQuery(".searchDetails").empty();
+						jQuery(".searchDetails").append(data);						
+					},
+					error: function () { },
+				});
+			} else {
+				jQuery(".searchDetails").hide();
+				jQuery(".searchDetails").empty();
+			}
+		});
+	});
+  </script>
+</body>
+
+</html>
